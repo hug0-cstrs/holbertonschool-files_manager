@@ -1,38 +1,42 @@
-import { MongoClient } from 'mongodb';
+const { MongoClient } = require('mongodb');
 
-class DBClient { // Class to manage the connection to the database
-  constructor() { // Constructor method that creates a new MongoDB client
-    this.host = process.env.DB_HOST || 'localhost'; // sets the host to the value of the DB_HOST environment variable or 'localhost'
-    this.port = process.env.DB_PORT || 27017;
-    // sets the port to the value of the DB_PORT environment variable or 27017
-    this.database = process.env.DB_DATABASE || 'files_manager'; // sets the database to the value of the DB_DATABASE environment variable or 'files_manager'
-    this.client = new MongoClient(`mongodb://${this.host}:${this.port}`, { useUnifiedTopology: true });
-    this.client.connect(); // connects to the MongoDB client
-    this.db = this.client.db(this.database);
-    // sets the database to the value of the DB_DATABASE environment variable or 'files_manager'
+/** DBclient - A MongoDB client class */
+class DBclient {
+  constructor() {
+    const host = process.env.DB_HOST || 'localhost';
+    const port = process.env.DB_PORT || 27017;
+    const database = process.env.DB_DATABASE || 'files_manager';
+    const uri = `mongodb://${host}:${port}/`;
+
+    this.client = null;
+    // Creating a connection to mongodb, saving dabase client to this.client
+    MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true }, (err, db) => {
+      if (err) this.client = false;
+      else {
+        this.client = db.db(database);
+        this.client.createCollection('users');
+        this.client.createCollection('files');
+      }
+    });
   }
 
-  isAlive() { // isAlive method that returns a boolean indicating if the client is connected
-    if (this.client.isConnected()) {
-      return true;
-    }
-    return false;
+  /** isAlive - returns true if connection to MongoDB is successful otherwise, false */
+  isAlive() {
+    return !!this.client; // this.client ? true : false;
   }
 
-  async nbUsers() { // nbUsers method that returns the number of users in the database
-    this.db = this.client.db(this.database);
-    // sets the database to the value of the DB_DATABASE environment variable or 'files_manager'
-    const collection = await this.db.collection('users'); // retrieves the 'users' collection from the database
-    return collection.countDocuments(); // returns the number of documents in the collection
+  /** nbUsers - returns the number of documents in the collection users */
+  async nbUsers() {
+    const numDocs = await this.client.collection('users').estimatedDocumentCount({});
+    return numDocs;
   }
 
-  async nbFiles() { // nbFiles method that returns the number of files in the database
-    this.db = this.client.db(this.database);
-    // sets the database to the value of the DB_DATABASE environment variable or 'files_manager'
-    const collection = await this.db.collection('files'); // retrieves the 'files' collection from the database
-    return collection.countDocuments(); // returns the number of documents in the collection
+  /** nbFiles - returns the number of documents in the collection files */
+  async nbFiles() {
+    const numDocs = await this.client.collection('files').estimatedDocumentCount({});
+    return numDocs;
   }
 }
 
-const dbClient = new DBClient(); // creates a new DBClient instance
-module.exports = dbClient; // exports the DBClient instance
+const dbClient = new DBclient();
+module.exports = dbClient;
