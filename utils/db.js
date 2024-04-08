@@ -1,42 +1,37 @@
-const { MongoClient } = require('mongodb');
+/* eslint-disable */
+import { MongoClient } from 'mongodb';
+// const { MongoClient } = require('mongodb');
 
-/** DBclient - A MongoDB client class */
-class DBclient {
+const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_PORT = process.env.DB_PORT || 27017;
+const DB_DATABASE = process.env.DB_DATABASE || 'files_manager';
+const url = `mongodb://${DB_HOST}:${DB_PORT}`;
+
+class DBClient {
   constructor() {
-    const host = process.env.DB_HOST || 'localhost';
-    const port = process.env.DB_PORT || 27017;
-    const database = process.env.DB_DATABASE || 'files_manager';
-    const uri = `mongodb://${host}:${port}/`;
-
-    this.client = null;
-    // Creating a connection to mongodb, saving dabase client to this.client
-    MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true }, (err, db) => {
-      if (err) this.client = false;
-      else {
-        this.client = db.db(database);
-        this.client.createCollection('users');
-        this.client.createCollection('files');
+    MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
+      if (!err) {
+        this.db = client.db(DB_DATABASE);
+        this.users = this.db.collection('users');
+        this.files = this.db.collection('files');
+      } else {
+        console.log(err.message);
+        this.db = false;
       }
     });
   }
 
-  /** isAlive - returns true if connection to MongoDB is successful otherwise, false */
-  isAlive() {
-    return !!this.client; // this.client ? true : false;
-  }
+  isAlive() { return !!this.db; }
 
-  /** nbUsers - returns the number of documents in the collection users */
-  async nbUsers() {
-    const numDocs = await this.client.collection('users').estimatedDocumentCount({});
-    return numDocs;
-  }
+  async nbUsers() { return this.users.countDocuments(); }
 
-  /** nbFiles - returns the number of documents in the collection files */
-  async nbFiles() {
-    const numDocs = await this.client.collection('files').estimatedDocumentCount({});
-    return numDocs;
+  async nbFiles() { return this.files.countDocuments(); }
+
+  async getUser(query) {
+    const user = await this.db.collection('users').findOne(query);
+    return user;
   }
 }
 
-const dbClient = new DBclient();
+const dbClient = new DBClient();
 module.exports = dbClient;

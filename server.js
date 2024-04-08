@@ -1,3 +1,4 @@
+/* eslint-disable */
 import express from 'express';
 
 const routes = require('./routes/index');
@@ -11,11 +12,4 @@ app.listen(port, () => {
 });
 app.use(express.json());
 app.use('/', routes);
-app.use('/status', routes);
-app.use('/stats', routes);
-app.use('/users', routes);
-app.use('/connect', routes);
-app.use('/disconnect', routes);
-app.use('/files', routes);
-
 module.exports = app;
